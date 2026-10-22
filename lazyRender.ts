@@ -59,6 +59,8 @@ export class LazyRenderManager {
 	private activeObservers: Set<IntersectionObserver> = new Set();
 	private domObserver?: MutationObserver;
 	private themeObserver?: MutationObserver;
+	private pendingMarkers: Set<SVGElement> = new Set();
+	private markerRaf: number | null = null;
 
 	constructor(plugin: MermaidZoomPlugin) {
 		this.plugin = plugin;
@@ -74,6 +76,11 @@ export class LazyRenderManager {
 
 	teardown(): void {
 		this.unpatchMermaid();
+		if (this.markerRaf !== null) {
+			cancelAnimationFrame(this.markerRaf);
+			this.markerRaf = null;
+		}
+		this.pendingMarkers.clear();
 		if (this.domObserver) {
 			this.domObserver.disconnect();
 			this.domObserver = undefined;
@@ -138,19 +145,35 @@ export class LazyRenderManager {
 		this.processExistingPlaceholders();
 
 		this.domObserver = new MutationObserver((mutations) => {
+			let found = false;
 			for (const mutation of Array.from(mutations)) {
 				for (const node of Array.from(mutation.addedNodes)) {
 					if (!(node instanceof HTMLElement)) continue;
 
 					if (node.classList?.contains('mermaid-lazy-marker')) {
-						this.handlePlaceholder(node as unknown as SVGElement);
-					}
-
-					const markers = node.querySelectorAll<SVGElement>('.mermaid-lazy-marker');
-					for (const marker of Array.from(markers)) {
-						this.handlePlaceholder(marker);
+						this.pendingMarkers.add(node as unknown as SVGElement);
+						found = true;
+					} else if (node.querySelector?.('.mermaid-lazy-marker')) {
+						const markers = node.querySelectorAll<SVGElement>('.mermaid-lazy-marker');
+						for (const marker of Array.from(markers)) {
+							this.pendingMarkers.add(marker);
+						}
+						found = true;
 					}
 				}
+			}
+
+			if (found && this.markerRaf === null) {
+				this.markerRaf = requestAnimationFrame(() => {
+					this.markerRaf = null;
+					const markers = Array.from(this.pendingMarkers);
+					this.pendingMarkers.clear();
+					for (const marker of markers) {
+						if (marker.isConnected) {
+							this.handlePlaceholder(marker);
+						}
+					}
+				});
 			}
 		});
 
@@ -246,8 +269,8 @@ export class LazyRenderManager {
 			this.pendingRenders.delete(id);
 
 			// Trigger inline zoom controls and click handlers on the newly rendered block
-			const hostMermaid = container.closest('.mermaid') ?? container;
-			this.plugin.decorateAllMermaidBlocks();
+			const hostMermaid = (container.closest('.mermaid') ?? container) as HTMLElement;
+			this.plugin.decorateMermaidBlocksIn(hostMermaid);
 		} catch (err) {
 			console.error('[Mermaid Zoom Lazy Render] Error rendering diagram:', err);
 			container.classList.remove('mermaid-lazy-rendering');

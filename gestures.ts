@@ -69,12 +69,24 @@ export function wheelZoomFactor(e: WheelEvent, sensitivity = 1): number {
 }
 
 export function addWheelZoom(container: HTMLElement, contentWrapper: HTMLElement, state: ZoomState, sensitivity = 1): () => void {
+	let cachedRect: DOMRect | null = null;
+	let rectTimer: number | null = null;
+	let rafId: number | null = null;
+
 	const wheelHandler = (e: WheelEvent) => {
 		e.preventDefault();
 
-		const rect = container.getBoundingClientRect();
-		const mouseX = e.clientX - rect.left;
-		const mouseY = e.clientY - rect.top;
+		if (!cachedRect) {
+			cachedRect = container.getBoundingClientRect();
+		}
+		if (rectTimer !== null) window.clearTimeout(rectTimer);
+		rectTimer = window.setTimeout(() => {
+			cachedRect = null;
+			rectTimer = null;
+		}, 150);
+
+		const mouseX = e.clientX - cachedRect.left;
+		const mouseY = e.clientY - cachedRect.top;
 
 		const factor = wheelZoomFactor(e, sensitivity);
 		const oldScale = state.scale;
@@ -82,23 +94,33 @@ export function addWheelZoom(container: HTMLElement, contentWrapper: HTMLElement
 		newScale = Math.max(state.minScale, Math.min(state.maxScale, newScale));
 
 		if (newScale !== oldScale) {
-			// 根据鼠标位置调整缩放平移
 			const scaleRatio = newScale / oldScale;
 			state.translateX = mouseX - (mouseX - state.translateX) * scaleRatio;
 			state.translateY = mouseY - (mouseY - state.translateY) * scaleRatio;
 			state.scale = newScale;
 
-			updateTransform(contentWrapper, state);
+			if (rafId === null) {
+				rafId = requestAnimationFrame(() => {
+					rafId = null;
+					updateTransform(contentWrapper, state);
+				});
+			}
 		}
 	};
 	container.addEventListener('wheel', wheelHandler, { passive: false });
 
-	return () => container.removeEventListener('wheel', wheelHandler);
+	return () => {
+		if (rafId !== null) cancelAnimationFrame(rafId);
+		if (rectTimer !== null) clearTimeout(rectTimer);
+		container.removeEventListener('wheel', wheelHandler);
+	};
 }
 
 export function addDragPan(container: HTMLElement, contentWrapper: HTMLElement, state: ZoomState): () => void {
+	let rafId: number | null = null;
+
 	container.addEventListener('mousedown', (e) => {
-		if (e.button === 0) { // 左键按下
+		if (e.button === 0) { // Left click
 			state.isDragging = true;
 			state.startX = e.clientX - state.translateX;
 			state.startY = e.clientY - state.translateY;
@@ -111,7 +133,13 @@ export function addDragPan(container: HTMLElement, contentWrapper: HTMLElement, 
 			e.preventDefault();
 			state.translateX = e.clientX - state.startX;
 			state.translateY = e.clientY - state.startY;
-			updateTransform(contentWrapper, state);
+
+			if (rafId === null) {
+				rafId = requestAnimationFrame(() => {
+					rafId = null;
+					updateTransform(contentWrapper, state);
+				});
+			}
 		}
 	};
 
@@ -119,14 +147,19 @@ export function addDragPan(container: HTMLElement, contentWrapper: HTMLElement, 
 		if (state.isDragging) {
 			state.isDragging = false;
 			contentWrapper.removeClass('dragging');
+			if (rafId !== null) {
+				cancelAnimationFrame(rafId);
+				rafId = null;
+			}
+			updateTransform(contentWrapper, state);
 		}
 	};
 
 	document.addEventListener('mousemove', onMouseMove);
 	document.addEventListener('mouseup', onMouseUp);
 
-	// 返回清理函数，移除 document 级监听器
 	return () => {
+		if (rafId !== null) cancelAnimationFrame(rafId);
 		document.removeEventListener('mousemove', onMouseMove);
 		document.removeEventListener('mouseup', onMouseUp);
 	};
@@ -139,10 +172,12 @@ export function addTouchGestures(container: HTMLElement, contentWrapper: HTMLEle
 	let initialTranslateY = 0;
 	let initialCenterX = 0;
 	let initialCenterY = 0;
+	let cachedRect: DOMRect | null = null;
+	let rafId: number | null = null;
 
 	const onTouchStart = (e: TouchEvent) => {
+		cachedRect = container.getBoundingClientRect();
 		if (e.touches.length === 2) {
-			// 双指缩放
 			const touch1 = e.touches[0];
 			const touch2 = e.touches[1];
 			initialDistance = Math.hypot(
@@ -153,12 +188,10 @@ export function addTouchGestures(container: HTMLElement, contentWrapper: HTMLEle
 			initialTranslateX = state.translateX;
 			initialTranslateY = state.translateY;
 
-			const rect = container.getBoundingClientRect();
-			initialCenterX = (touch1.clientX + touch2.clientX) / 2 - rect.left;
-			initialCenterY = (touch1.clientY + touch2.clientY) / 2 - rect.top;
+			initialCenterX = (touch1.clientX + touch2.clientX) / 2 - cachedRect.left;
+			initialCenterY = (touch1.clientY + touch2.clientY) / 2 - cachedRect.top;
 			state.isDragging = false;
 		} else if (e.touches.length === 1) {
-			// 单指拖拽
 			state.isDragging = true;
 			state.startX = e.touches[0].clientX - state.translateX;
 			state.startY = e.touches[0].clientY - state.translateY;
@@ -171,7 +204,6 @@ export function addTouchGestures(container: HTMLElement, contentWrapper: HTMLEle
 		if (e.touches.length === 2) {
 			if (initialDistance === 0) return;
 
-			// 双指缩放
 			const touch1 = e.touches[0];
 			const touch2 = e.touches[1];
 			const currentDistance = Math.hypot(
@@ -180,12 +212,10 @@ export function addTouchGestures(container: HTMLElement, contentWrapper: HTMLEle
 			);
 
 			const scaleRatio = currentDistance / initialDistance;
-			// Sensitivity acts as an exponent on the finger-distance ratio:
-			// < 1 softens the pinch response, > 1 amplifies it.
 			let newScale = initialScale * Math.pow(scaleRatio, sensitivity);
 			newScale = Math.max(state.minScale, Math.min(state.maxScale, newScale));
 
-			const rect = container.getBoundingClientRect();
+			const rect = cachedRect ?? container.getBoundingClientRect();
 			const currentCenterX = (touch1.clientX + touch2.clientX) / 2 - rect.left;
 			const currentCenterY = (touch1.clientY + touch2.clientY) / 2 - rect.top;
 			const appliedScaleRatio = newScale / initialScale;
@@ -193,17 +223,34 @@ export function addTouchGestures(container: HTMLElement, contentWrapper: HTMLEle
 			state.translateX = currentCenterX - (initialCenterX - initialTranslateX) * appliedScaleRatio;
 			state.translateY = currentCenterY - (initialCenterY - initialTranslateY) * appliedScaleRatio;
 			state.scale = newScale;
-			updateTransform(contentWrapper, state);
+
+			if (rafId === null) {
+				rafId = requestAnimationFrame(() => {
+					rafId = null;
+					updateTransform(contentWrapper, state);
+				});
+			}
 		} else if (e.touches.length === 1 && state.isDragging) {
-			// 单指拖拽
 			state.translateX = e.touches[0].clientX - state.startX;
 			state.translateY = e.touches[0].clientY - state.startY;
-			updateTransform(contentWrapper, state);
+
+			if (rafId === null) {
+				rafId = requestAnimationFrame(() => {
+					rafId = null;
+					updateTransform(contentWrapper, state);
+				});
+			}
 		}
 	};
 
 	const onTouchEnd = () => {
 		state.isDragging = false;
+		cachedRect = null;
+		if (rafId !== null) {
+			cancelAnimationFrame(rafId);
+			rafId = null;
+		}
+		updateTransform(contentWrapper, state);
 	};
 
 	container.addEventListener('touchstart', onTouchStart);
@@ -212,6 +259,7 @@ export function addTouchGestures(container: HTMLElement, contentWrapper: HTMLEle
 	container.addEventListener('touchcancel', onTouchEnd);
 
 	return () => {
+		if (rafId !== null) cancelAnimationFrame(rafId);
 		container.removeEventListener('touchstart', onTouchStart);
 		container.removeEventListener('touchmove', onTouchMove);
 		container.removeEventListener('touchend', onTouchEnd);

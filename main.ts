@@ -78,14 +78,36 @@ export default class MermaidZoomPlugin extends Plugin {
 		});
 	}
 
+	private pendingMutationNodes: Set<HTMLElement> = new Set();
+	private mutationRaf: number | null = null;
+
 	private setupMutationObserver() {
 		this.mutationObserver = new MutationObserver((mutations) => {
+			let hasRelevant = false;
 			for (const mutation of Array.from(mutations)) {
 				for (const node of Array.from(mutation.addedNodes)) {
-					if (node.instanceOf(HTMLElement)) {
-						this.decorateMermaidBlocksIn(node);
+					if (node instanceof HTMLElement) {
+						if (node.classList?.contains('mermaid') ||
+							node.querySelector?.('.mermaid, .mermaid-lazy-marker') ||
+							node.closest?.('.mermaid')) {
+							this.pendingMutationNodes.add(node);
+							hasRelevant = true;
+						}
 					}
 				}
+			}
+
+			if (hasRelevant && this.mutationRaf === null) {
+				this.mutationRaf = requestAnimationFrame(() => {
+					this.mutationRaf = null;
+					const nodes = Array.from(this.pendingMutationNodes);
+					this.pendingMutationNodes.clear();
+					for (const node of nodes) {
+						if (node.isConnected) {
+							this.decorateMermaidBlocksIn(node);
+						}
+					}
+				});
 			}
 		});
 
@@ -103,17 +125,16 @@ export default class MermaidZoomPlugin extends Plugin {
 	// the added node itself, sitting inside the .mermaid div — only
 	// closest() finds that host (inline zoom must re-apply the stored scale
 	// to the replacement svg promptly, not on the next workspace sweep).
-	private decorateMermaidBlocksIn(root: HTMLElement) {
-		const blocks = Array.from(root.querySelectorAll<HTMLElement>('.mermaid'));
+	decorateMermaidBlocksIn(root: HTMLElement) {
+		const blocks: HTMLElement[] = [];
 		if (root.classList.contains('mermaid')) {
 			blocks.push(root);
 		} else {
-			for (const svg of Array.from(root.querySelectorAll('.mermaid svg'))) {
-				const host = svg.closest('.mermaid');
-				if (host) blocks.push(host as HTMLElement);
+			for (const block of Array.from(root.querySelectorAll<HTMLElement>('.mermaid'))) {
+				blocks.push(block);
 			}
-			const host = root.closest('.mermaid');
-			if (host) blocks.push(host as HTMLElement);
+			const host = root.closest('.mermaid') as HTMLElement | null;
+			if (host && !blocks.includes(host)) blocks.push(host);
 		}
 		for (const block of blocks) {
 			this.decorateMermaidBlock(block);
@@ -442,6 +463,12 @@ export default class MermaidZoomPlugin extends Plugin {
 
 	onunload() {
 		console.debug('Unloading Mermaid Zoom plugin');
+
+		if (this.mutationRaf !== null) {
+			cancelAnimationFrame(this.mutationRaf);
+			this.mutationRaf = null;
+		}
+		this.pendingMutationNodes.clear();
 
 		this.lazyManager.teardown();
 		this.mutationObserver?.disconnect();
