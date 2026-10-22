@@ -114,3 +114,17 @@ test('Mermaid Zoom modal: inherits .mermaid class and --mpe-* CSS variables from
   assert.equal(modalContentWrapper.style.getPropertyValue('--mpe-border'), '#3b82f6');
   assert.equal(modalContentWrapper.style.getPropertyValue('--mpe-text'), '#f8fafc');
 });
+
+test('Mermaid Zoom styles: maintains high contrast rules for Sankey gradients, Block text, and Gantt active bars', () => {
+  const css = fs.readFileSync(path.join(__dirname, '../styles.css'), 'utf-8');
+
+  // Sankey gradient visibility
+  assert.ok(css.includes('mix-blend-mode: normal !important;'), 'Sankey links should use normal blend mode');
+  assert.ok(css.includes('stroke-opacity: 0.72 !important;'), 'Sankey dark mode links should have 0.72 opacity');
+
+  // Block diagram text readability
+  assert.ok(css.includes(':is(text, span, p, div, .nodeLabel, .label)'), 'Block diagram selector should cover text and foreignObject elements');
+
+  // Gantt chart active task contrast
+  assert.ok(css.includes('fill: #0f172a !important;'), 'Active tasks in dark mode should use high contrast dark text');
+});
