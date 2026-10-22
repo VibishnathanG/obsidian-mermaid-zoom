@@ -176,7 +176,6 @@ export default class MermaidZoomPlugin extends Plugin {
 
 		block.removeClass('mermaid-zoom-align-left', 'mermaid-zoom-align-center', 'mermaid-zoom-align-right');
 		block.addClass(`mermaid-zoom-align-${this.settings.alignment}`);
-		block.toggleClass('mermaid-zoom-bordered', this.settings.showContainerBorder);
 		block.addClass('mermaid-zoom-ready');
 
 		syncInlineZoom(block, {
@@ -190,8 +189,6 @@ export default class MermaidZoomPlugin extends Plugin {
 			},
 			getSensitivity: () => this.settings.zoomSensitivity,
 			showZoomButtons: this.settings.showInlineZoomButtons,
-			defaultScale: this.settings.defaultScale,
-			autoFitWidth: this.settings.autoFitWidth,
 		});
 	}
 
@@ -491,7 +488,7 @@ export default class MermaidZoomPlugin extends Plugin {
 		const decorated = document.querySelectorAll('.mermaid-zoom-ready');
 		for (const block of Array.from(decorated) as HTMLElement[]) {
 			teardownInlineZoom(block);
-			block.removeClass('mermaid-zoom-ready', 'mermaid-zoom-bordered',
+			block.removeClass('mermaid-zoom-ready',
 				'mermaid-zoom-align-left', 'mermaid-zoom-align-center', 'mermaid-zoom-align-right');
 			for (const cluster of Array.from(block.querySelectorAll('.mermaid-zoom-inline-controls'))) {
 				cluster.remove();

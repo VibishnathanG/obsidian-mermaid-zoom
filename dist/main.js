@@ -326,10 +326,7 @@ function t(key) {
 // settings.ts
 var DEFAULT_SETTINGS = {
   zoomSensitivity: 1,
-  defaultScale: 1,
-  autoFitWidth: false,
   showInlineZoomButtons: true,
-  showContainerBorder: false,
   alignment: "center",
   exportDestination: "vault",
   preserveColors: true,
@@ -369,23 +366,8 @@ var MermaidZoomSettingTab = class extends import_obsidian2.PluginSettingTab {
       this.plugin.settings.zoomSensitivity = value;
       await this.plugin.saveSettings();
     }));
-    new import_obsidian2.Setting(containerEl).setName("Default zoom level").setDesc("Initial scale applied to all Mermaid diagrams upon loading (e.g. 1.0 = 100% normal, 0.8 = compact, 1.2 = enlarged).").addSlider((slider) => slider.setLimits(0.5, 2.5, 0.1).setValue(this.plugin.settings.defaultScale || 1).setDynamicTooltip().onChange(async (value) => {
-      this.plugin.settings.defaultScale = value;
-      await this.plugin.saveSettings();
-      this.plugin.decorateAllMermaidBlocks();
-    }));
-    new import_obsidian2.Setting(containerEl).setName("Auto-fit diagrams to note width").setDesc("Automatically scale wide diagrams to match note column width on load.").addToggle((toggle) => toggle.setValue(this.plugin.settings.autoFitWidth || false).onChange(async (value) => {
-      this.plugin.settings.autoFitWidth = value;
-      await this.plugin.saveSettings();
-      this.plugin.decorateAllMermaidBlocks();
-    }));
     new import_obsidian2.Setting(containerEl).setName(t("setting.inlineZoomButtons.name")).setDesc(t("setting.inlineZoomButtons.desc")).addToggle((toggle) => toggle.setValue(this.plugin.settings.showInlineZoomButtons).onChange(async (value) => {
       this.plugin.settings.showInlineZoomButtons = value;
-      await this.plugin.saveSettings();
-      this.plugin.decorateAllMermaidBlocks();
-    }));
-    new import_obsidian2.Setting(containerEl).setName(t("setting.containerBorder.name")).setDesc(t("setting.containerBorder.desc")).addToggle((toggle) => toggle.setValue(this.plugin.settings.showContainerBorder).onChange(async (value) => {
-      this.plugin.settings.showContainerBorder = value;
       await this.plugin.saveSettings();
       this.plugin.decorateAllMermaidBlocks();
     }));
@@ -993,11 +975,6 @@ function ensureControlCluster(block, opts) {
 function syncInlineZoom(block, opts) {
   ensureControlCluster(block, opts);
   block.toggleClass("mermaid-zoom-inline-controls-off", !opts.showZoomButtons);
-  if (opts.autoFitWidth && !block.dataset.mzScale) {
-    fitBlockToWidth(block);
-  } else if (opts.defaultScale && opts.defaultScale !== 1 && !block.dataset.mzScale) {
-    setBlockScale(block, opts.defaultScale);
-  }
   const scale = getBlockScale(block);
   if (scale !== 1) {
     const svg = block.querySelector("svg");
@@ -1642,7 +1619,6 @@ var MermaidZoomPlugin = class extends import_obsidian6.Plugin {
       return;
     block.removeClass("mermaid-zoom-align-left", "mermaid-zoom-align-center", "mermaid-zoom-align-right");
     block.addClass(`mermaid-zoom-align-${this.settings.alignment}`);
-    block.toggleClass("mermaid-zoom-bordered", this.settings.showContainerBorder);
     block.addClass("mermaid-zoom-ready");
     syncInlineZoom(block, {
       onFullscreen: (b) => {
@@ -1652,9 +1628,7 @@ var MermaidZoomPlugin = class extends import_obsidian6.Plugin {
         }
       },
       getSensitivity: () => this.settings.zoomSensitivity,
-      showZoomButtons: this.settings.showInlineZoomButtons,
-      defaultScale: this.settings.defaultScale,
-      autoFitWidth: this.settings.autoFitWidth
+      showZoomButtons: this.settings.showInlineZoomButtons
     });
   }
   openFullscreenModal(sourceSvg) {
@@ -1872,7 +1846,6 @@ var MermaidZoomPlugin = class extends import_obsidian6.Plugin {
       teardownInlineZoom(block);
       block.removeClass(
         "mermaid-zoom-ready",
-        "mermaid-zoom-bordered",
         "mermaid-zoom-align-left",
         "mermaid-zoom-align-center",
         "mermaid-zoom-align-right"

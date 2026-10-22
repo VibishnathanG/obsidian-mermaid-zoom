@@ -22,11 +22,6 @@
 	text-align: right;
 }
 
-.mermaid-zoom-bordered {
-	border: 1px dashed var(--background-modifier-border);
-	border-radius: 4px;
-}
-
 /* Inline control cluster — one bar at the block's bottom-right corner
    (+ / − / fit width / reset / lock / fullscreen), kept clear of
    Obsidian's own code-block action icons at the top-right. */

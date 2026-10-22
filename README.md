@@ -65,7 +65,6 @@ Maintained and enhanced by **Vibish** ([@VibishnathanG](https://github.com/Vibis
 ### Zoom & Appearance
 - **Zoom Sensitivity**: Multiplier on wheel and pinch gestures (0.2x to 3.0x, default `1x`).
 - **Show Inline Zoom Buttons**: Show zoom in, zoom out, fit width, reset, and gesture lock controls directly on each diagram.
-- **Show Container Border**: Display a subtle dashed border around each diagram area.
 - **Default Alignment**: Align diagrams to `Left`, `Center`, or `Right`.
 - **Preserve Normal Rendering Colors**: Render fullscreen diagrams with their exact colors and theme variables.
 - **PNG Export Destination**: Save exported PNGs to your vault attachments folder or prompt system download.
@@ -93,10 +92,7 @@ For a full breakdown of all keys, allowed values, and ready-to-copy configuratio
   "lazyShowType": true,
   "lazyRerenderOnThemeChange": true,
   "zoomSensitivity": 1.0,
-  "defaultScale": 1.0,
-  "autoFitWidth": false,
   "showInlineZoomButtons": true,
-  "showContainerBorder": false,
   "alignment": "center",
   "preserveColors": true,
   "exportDestination": "vault"

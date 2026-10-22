@@ -6,10 +6,7 @@ import type { ExportDestination } from './export';
 
 export interface MermaidZoomSettings {
 	zoomSensitivity: number; // multiplier on wheel/pinch zoom strength, 1 = default
-	defaultScale: number; // default initial scale for all diagrams (e.g. 1.0 = normal, 0.8 = compact, 1.3 = enlarged)
-	autoFitWidth: boolean; // whether diagrams automatically scale to match note width on load
 	showInlineZoomButtons: boolean;
-	showContainerBorder: boolean;
 	alignment: 'left' | 'center' | 'right';
 	exportDestination: ExportDestination; // 'vault' | 'download'
 	preserveColors: boolean; // Keep native/Genie diagram colors in fullscreen (default: true)
@@ -23,10 +20,7 @@ export interface MermaidZoomSettings {
 
 export const DEFAULT_SETTINGS: MermaidZoomSettings = {
 	zoomSensitivity: 1,
-	defaultScale: 1,
-	autoFitWidth: false,
 	showInlineZoomButtons: true,
-	showContainerBorder: false,
 	alignment: 'center',
 	exportDestination: 'vault',
 	preserveColors: true,
@@ -86,47 +80,12 @@ export class MermaidZoomSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('Default zoom level')
-			.setDesc('Initial scale applied to all Mermaid diagrams upon loading (e.g. 1.0 = 100% normal, 0.8 = compact, 1.2 = enlarged).')
-			.addSlider(slider => slider
-				.setLimits(0.5, 2.5, 0.1)
-				.setValue(this.plugin.settings.defaultScale || 1)
-				.setDynamicTooltip()
-				.onChange(async (value) => {
-					this.plugin.settings.defaultScale = value;
-					await this.plugin.saveSettings();
-					this.plugin.decorateAllMermaidBlocks();
-				}));
-
-		new Setting(containerEl)
-			.setName('Auto-fit diagrams to note width')
-			.setDesc('Automatically scale wide diagrams to match note column width on load.')
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.autoFitWidth || false)
-				.onChange(async (value) => {
-					this.plugin.settings.autoFitWidth = value;
-					await this.plugin.saveSettings();
-					this.plugin.decorateAllMermaidBlocks();
-				}));
-
-		new Setting(containerEl)
 			.setName(t('setting.inlineZoomButtons.name'))
 			.setDesc(t('setting.inlineZoomButtons.desc'))
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.showInlineZoomButtons)
 				.onChange(async (value) => {
 					this.plugin.settings.showInlineZoomButtons = value;
-					await this.plugin.saveSettings();
-					this.plugin.decorateAllMermaidBlocks();
-				}));
-
-		new Setting(containerEl)
-			.setName(t('setting.containerBorder.name'))
-			.setDesc(t('setting.containerBorder.desc'))
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.showContainerBorder)
-				.onChange(async (value) => {
-					this.plugin.settings.showContainerBorder = value;
 					await this.plugin.saveSettings();
 					this.plugin.decorateAllMermaidBlocks();
 				}));

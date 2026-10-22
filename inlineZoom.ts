@@ -54,10 +54,6 @@ export interface InlineZoomOpts {
 	getSensitivity: () => number;
 	/** Whether the zoom/lock buttons are shown (fullscreen always is). */
 	showZoomButtons: boolean;
-	/** Default initial scale for diagrams. */
-	defaultScale?: number;
-	/** Automatically fit diagrams to note column width on load. */
-	autoFitWidth?: boolean;
 }
 
 /** Natural size from the live svg — re-read on every call, never cached.
@@ -479,13 +475,6 @@ function ensureControlCluster(block: HTMLElement, opts: InlineZoomOpts): HTMLEle
 export function syncInlineZoom(block: HTMLElement, opts: InlineZoomOpts): void {
 	ensureControlCluster(block, opts);
 	block.toggleClass('mermaid-zoom-inline-controls-off', !opts.showZoomButtons);
-
-	// Apply initial auto-fit or default scale if diagram hasn't been zoomed yet
-	if (opts.autoFitWidth && !block.dataset.mzScale) {
-		fitBlockToWidth(block);
-	} else if (opts.defaultScale && opts.defaultScale !== 1 && !block.dataset.mzScale) {
-		setBlockScale(block, opts.defaultScale);
-	}
 
 	// Heal a re-rendered svg: the stored scale outlives the replaced node,
 	// which arrives with mermaid's pristine inline styles.
