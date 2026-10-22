@@ -1617,8 +1617,6 @@ var MermaidZoomPlugin = class extends import_obsidian6.Plugin {
   decorateMermaidBlock(block) {
     if (!block.querySelector("svg"))
       return;
-    block.removeClass("mermaid-zoom-align-left", "mermaid-zoom-align-center", "mermaid-zoom-align-right");
-    block.addClass(`mermaid-zoom-align-${this.settings.alignment}`);
     block.addClass("mermaid-zoom-ready");
     syncInlineZoom(block, {
       onFullscreen: (b) => {
@@ -1821,11 +1819,17 @@ var MermaidZoomPlugin = class extends import_obsidian6.Plugin {
     const svgHeight = state.svgOriginalHeight;
     const scaleX = availableWidth / svgWidth;
     const scaleY = availableHeight / svgHeight;
-    const fitScale = Math.min(scaleX, scaleY, 2);
+    let fitScale = 1;
+    if (svgWidth > availableWidth || svgHeight > availableHeight) {
+      fitScale = Math.min(scaleX, scaleY);
+      if (fitScale < 0.85 && scaleX >= 0.85) {
+        fitScale = Math.min(scaleX, 1);
+      }
+    }
     const scaledWidth = svgWidth * fitScale;
     const scaledHeight = svgHeight * fitScale;
-    const centerX = (container.clientWidth - scaledWidth) / 2;
-    const centerY = (container.clientHeight - scaledHeight) / 2;
+    const centerX = Math.max(20, (container.clientWidth - scaledWidth) / 2);
+    const centerY = Math.max(20, (container.clientHeight - scaledHeight) / 2);
     state.scale = fitScale;
     state.translateX = centerX;
     state.translateY = centerY;

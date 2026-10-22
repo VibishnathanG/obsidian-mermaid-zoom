@@ -174,8 +174,6 @@ export default class MermaidZoomPlugin extends Plugin {
 		// never get one) — the MutationObserver re-visits when it appears.
 		if (!block.querySelector('svg')) return;
 
-		block.removeClass('mermaid-zoom-align-left', 'mermaid-zoom-align-center', 'mermaid-zoom-align-right');
-		block.addClass(`mermaid-zoom-align-${this.settings.alignment}`);
 		block.addClass('mermaid-zoom-ready');
 
 		syncInlineZoom(block, {
@@ -454,16 +452,24 @@ export default class MermaidZoomPlugin extends Plugin {
 		const svgWidth = state.svgOriginalWidth;
 		const svgHeight = state.svgOriginalHeight;
 
-		// Calculate scale to fit
+		// Default to comfortable natural scale (1.0), unless width exceeds available screen width
 		const scaleX = availableWidth / svgWidth;
 		const scaleY = availableHeight / svgHeight;
-		const fitScale = Math.min(scaleX, scaleY, 2); // Allow up to 200% in modal
+
+		let fitScale = 1;
+		if (svgWidth > availableWidth || svgHeight > availableHeight) {
+			fitScale = Math.min(scaleX, scaleY);
+			// For tall diagrams (e.g. C4 or large flows), do not shrink below readable text scale (0.85) when width allows
+			if (fitScale < 0.85 && scaleX >= 0.85) {
+				fitScale = Math.min(scaleX, 1);
+			}
+		}
 
 		// Center the SVG
 		const scaledWidth = svgWidth * fitScale;
 		const scaledHeight = svgHeight * fitScale;
-		const centerX = (container.clientWidth - scaledWidth) / 2;
-		const centerY = (container.clientHeight - scaledHeight) / 2;
+		const centerX = Math.max(20, (container.clientWidth - scaledWidth) / 2);
+		const centerY = Math.max(20, (container.clientHeight - scaledHeight) / 2);
 
 		// Apply the scale and center
 		state.scale = fitScale;
