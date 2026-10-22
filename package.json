@@ -1,5 +1,5 @@
 {
-  "name": "mermaid-zoom",
+  "name": "mermaid-zoom-genie",
   "version": "1.7.0",
   "description": "Interactive zoom, drag-to-pan, and viewport lazy-rendering for Mermaid diagrams with Genie color synchronization and PNG export.",
   "author": "Vibish <https://github.com/VibishnathanG>",

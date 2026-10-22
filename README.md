@@ -51,9 +51,9 @@ Maintained and enhanced by **Vibish** ([@VibishnathanG](https://github.com/Vibis
    ```text
    <vault>/.obsidian/plugins/
    ```
-3. Create a folder named `mermaid-zoom`:
+3. Create a folder named `mermaid-zoom-genie`:
    ```text
-   <vault>/.obsidian/plugins/mermaid-zoom/
+   <vault>/.obsidian/plugins/mermaid-zoom-genie/
    ```
 4. Place the three files inside that folder.
 5. In Obsidian, go to **Settings → Community plugins**, click **Reload plugins**, and enable **Mermaid Zoom**.

@@ -185,6 +185,26 @@ export class MermaidZoomSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
+		const headerDiv = containerEl.createDiv({ cls: 'mermaid-zoom-header-card' });
+		headerDiv.style.padding = '12px 16px';
+		headerDiv.style.marginBottom = '18px';
+		headerDiv.style.border = '1px solid var(--background-modifier-border)';
+		headerDiv.style.borderRadius = '8px';
+		headerDiv.style.backgroundColor = 'var(--background-secondary)';
+
+		const title = headerDiv.createEl('h3', { text: 'Mermaid Zoom & Lazy Render' });
+		title.style.marginTop = '0';
+		title.style.marginBottom = '6px';
+
+		const info = headerDiv.createEl('p', { cls: 'setting-item-description' });
+		info.style.margin = '0';
+		info.appendText('Enhanced & maintained by ');
+		const authorLink = info.createEl('a', { text: 'Vibish', href: 'https://github.com/VibishnathanG' });
+		authorLink.style.color = 'var(--text-accent)';
+		info.appendText(' • ');
+		const repoLink = info.createEl('a', { text: 'GitHub Repository & Documentation', href: 'https://github.com/VibishnathanG/obsidian-mermaid-zoom' });
+		repoLink.style.color = 'var(--text-accent)';
+
 		new Setting(containerEl)
 			.setName('Zoom & Appearance')
 			.setHeading();
