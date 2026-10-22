@@ -3,8 +3,8 @@
   "name": "Mermaid Zoom",
   "version": "1.7.0",
   "minAppVersion": "1.8.7",
-  "description": "Add zoom functionality to Mermaid diagrams. Use mouse wheel or touch gestures to zoom in and out.",
-  "author": "Wang Xiao Zhuang",
-  "authorUrl": "https://github.com/xiaozhuang0433",
+  "description": "Interactive zoom, drag-to-pan, and viewport lazy-rendering for Mermaid diagrams with Genie color synchronization and PNG export.",
+  "author": "Vibish",
+  "authorUrl": "https://github.com/VibishnathanG",
   "isDesktopOnly": false
 }

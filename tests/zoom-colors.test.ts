@@ -30,7 +30,7 @@ Module._load = function (request: string, parent: unknown, isMain: boolean) {
 };
 
 const { DEFAULT_SETTINGS } = require('../settings');
-Module._load = originalLoad;
+const { LazyRenderManager, detectDiagramType, sanitizeSvg } = require('../lazyRender');
 
 test('Mermaid Zoom: DEFAULT_SETTINGS preserves normal rendering colors by default', () => {
   assert.equal(DEFAULT_SETTINGS.preserveColors, true);
@@ -127,4 +127,60 @@ test('Mermaid Zoom styles: maintains high contrast rules for Sankey gradients, B
 
   // Gantt chart active task contrast
   assert.ok(css.includes('fill: #0f172a !important;'), 'Active tasks in dark mode should use high contrast dark text');
+});
+
+test('Mermaid Zoom Lazy Render: detects diagram types and sanitizes SVGs', async () => {
+  assert.equal(detectDiagramType('flowchart TD\nA-->B'), 'flowchart');
+  assert.equal(detectDiagramType('sequenceDiagram\nAlice->Bob: Hi'), 'sequenceDiagram');
+  assert.equal(detectDiagramType('%% comment\nblock-beta\ncolumns 3'), 'block-beta');
+  assert.equal(detectDiagramType('sankey-beta\nA, B, 10'), 'sankey-beta');
+  assert.equal(detectDiagramType('   '), 'mermaid');
+
+  const dirtySvg = '<svg><script>alert("xss")</script><rect width="100" onload="evil()" onclick=\'hack()\'/><a href="javascript:doEvil()">link</a></svg>';
+  const cleanSvg = sanitizeSvg(dirtySvg);
+  assert.ok(!cleanSvg.includes('<script>'), 'Script tags should be removed');
+  assert.ok(!cleanSvg.includes('onload'), 'onload handler should be removed');
+  assert.ok(!cleanSvg.includes('onclick'), 'onclick handler should be removed');
+  assert.ok(!cleanSvg.includes('javascript:'), 'javascript: URLs should be replaced');
+  assert.ok(cleanSvg.includes('<rect width="100"'), 'Standard SVG rect should be preserved');
+});
+
+test('Mermaid Zoom Lazy Render: intercepts and defers mermaid.render when enabled', async () => {
+  let nativeRenderCalls = 0;
+  const mockMermaid = {
+    render: async (id: string, text: string) => {
+      nativeRenderCalls++;
+      return { svg: `<svg id="${id}"><text>${text}</text></svg>` };
+    }
+  };
+
+  (globalThis as any).mermaid = mockMermaid;
+
+  const mockPlugin: any = {
+    settings: {
+      enableLazyLoading: true,
+      lazyTrigger: 'auto',
+      lazyRootMargin: '200px',
+      lazyShowType: true,
+      lazyRerenderOnThemeChange: true,
+    },
+    decorateAllMermaidBlocks: () => {},
+  };
+
+  const manager = new LazyRenderManager(mockPlugin);
+  manager.patchMermaid();
+
+  // Test when lazy loading is enabled
+  const lazyRes = await (globalThis as any).mermaid.render('test-1', 'flowchart LR\nA-->B');
+  assert.ok(lazyRes.svg.includes('mermaid-lazy-marker'), 'Should return lazy marker SVG without calling native renderer');
+  assert.equal(nativeRenderCalls, 0, 'Native render should not be called synchronously');
+
+  // Test when lazy loading is disabled
+  mockPlugin.settings.enableLazyLoading = false;
+  const directRes = await (globalThis as any).mermaid.render('test-2', 'flowchart LR\nC-->D');
+  assert.ok(!directRes.svg.includes('mermaid-lazy-marker'), 'Direct render should not be intercepted');
+  assert.equal(nativeRenderCalls, 1, 'Native render should be called when lazy loading is disabled');
+
+  manager.unpatchMermaid();
+  assert.equal((globalThis as any).mermaid.render, mockMermaid.render, 'Mermaid.render should be restored on unpatch');
 });

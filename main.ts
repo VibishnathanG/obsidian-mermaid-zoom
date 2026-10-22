@@ -4,12 +4,14 @@ import { ZoomState, updateTransform, zoom, addWheelZoom, addDragPan, addTouchGes
 import { syncInlineZoom, teardownInlineZoom } from './inlineZoom';
 import { t } from './i18n';
 import { exportDiagramPng } from './export';
+import { LazyRenderManager } from './lazyRender';
 
 export default class MermaidZoomPlugin extends Plugin {
 	private readonly defaultMinScale = 0.1;
 	private readonly defaultMaxScale = 5;
 	private mutationObserver?: MutationObserver;
 	settings: MermaidZoomSettings = DEFAULT_SETTINGS;
+	lazyManager: LazyRenderManager = new LazyRenderManager(this);
 
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<MermaidZoomSettings>);
@@ -48,6 +50,32 @@ export default class MermaidZoomPlugin extends Plugin {
 			// Delay to allow mermaid to render
 			window.setTimeout(() => this.decorateAllMermaidBlocks(), 200);
 		}));
+
+		// Initialize viewport lazy rendering engine
+		this.lazyManager.setup();
+
+		// Register commands for on-demand diagram rendering
+		this.addCommand({
+			id: 'render-all-diagrams',
+			name: 'Render all diagrams in active note',
+			checkCallback: (checking) => {
+				const active = this.app.workspace.getActiveFile();
+				if (checking) return !!active;
+				this.lazyManager.renderAllInActiveNote();
+				return true;
+			},
+		});
+
+		this.addCommand({
+			id: 'render-viewport-diagrams',
+			name: 'Render diagrams in current viewport',
+			checkCallback: (checking) => {
+				const active = this.app.workspace.getActiveFile();
+				if (checking) return !!active;
+				this.lazyManager.renderVisibleInActiveNote();
+				return true;
+			},
+		});
 	}
 
 	private setupMutationObserver() {
@@ -415,6 +443,7 @@ export default class MermaidZoomPlugin extends Plugin {
 	onunload() {
 		console.debug('Unloading Mermaid Zoom plugin');
 
+		this.lazyManager.teardown();
 		this.mutationObserver?.disconnect();
 
 		// Strip decoration so a reloaded plugin starts clean.

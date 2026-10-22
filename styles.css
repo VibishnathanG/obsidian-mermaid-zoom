@@ -799,3 +799,101 @@
     stroke-width: 1px;
   }
 }
+
+/* ================================================================
+   Mermaid Zoom Viewport Lazy Rendering
+   ================================================================ */
+.mermaid-lazy-placeholder {
+  border: 1px dashed var(--background-modifier-border, rgba(148, 163, 184, 0.4));
+  border-radius: var(--radius-m, 8px);
+  padding: 18px 24px;
+  background: var(--background-secondary, rgba(15, 23, 42, 0.04));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 80px;
+  margin: 12px 0;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  cursor: pointer;
+  user-select: none;
+}
+
+.mermaid-lazy-placeholder:hover {
+  border-color: var(--interactive-accent, #38bdf8);
+  background: var(--background-secondary-alt, rgba(15, 23, 42, 0.08));
+}
+
+.mermaid-lazy-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted, #94a3b8);
+  font-family: var(--font-monospace, monospace);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.85;
+}
+
+.mermaid-lazy-button {
+  background: var(--interactive-accent, #0284c7);
+  color: var(--text-on-accent, #ffffff);
+  border: none;
+  border-radius: var(--radius-s, 6px);
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.mermaid-lazy-button:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.mermaid-lazy-button:active {
+  transform: translateY(0);
+}
+
+.mermaid-lazy-rendering {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+}
+
+.mermaid-lazy-loading {
+  color: var(--text-muted, #94a3b8);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.mermaid-lazy-loading::after {
+  content: '';
+  display: inline-block;
+  width: 1.2em;
+  text-align: left;
+  animation: mermaid-lazy-dots 1.4s steps(4, end) infinite;
+}
+
+@keyframes mermaid-lazy-dots {
+  0%   { content: ''; }
+  25%  { content: '.'; }
+  50%  { content: '..'; }
+  75%  { content: '...'; }
+  100% { content: ''; }
+}
+
+.mermaid-lazy-error {
+  border: 1px solid var(--background-modifier-error, #ef4444);
+  border-radius: var(--radius-m, 8px);
+  padding: 16px;
+  background: var(--background-modifier-error-hover, rgba(239, 68, 68, 0.1));
+  color: var(--text-error, #ef4444);
+  font-size: 13px;
+  text-align: center;
+  cursor: pointer;
+}
+

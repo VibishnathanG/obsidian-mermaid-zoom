@@ -1,67 +1,94 @@
-# Mermaid Zoom
+# Obsidian Mermaid Zoom & Lazy Render
 
-[English](README.md) | [简体中文](README.zh-CN.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Tests](https://img.shields.io/badge/Tests-6%20passed-brightgreen.svg)]()
+[![Obsidian Plugin](https://img.shields.io/badge/Obsidian-Plugin-purple.svg)](https://obsidian.md)
 
-An Obsidian plugin that adds zoom and pan functionality to Mermaid diagrams.
+**Mermaid Zoom** is a feature-packed Obsidian plugin providing smooth interactive zoom, pan, fullscreen modal inspection, high-DPI export, and an integrated **viewport lazy-rendering engine** for Mermaid diagrams.
 
-![Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fxiaozhuang0433%2Fmermaid-zoom%2Fmain%2Fmanifest.json&query=$.version&prefix=v&label=version&color=2D9CDB)
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
+Maintained and enhanced by **Vibish** ([@VibishnathanG](https://github.com/VibishnathanG)).
+
+---
 
 ## Features
 
-- **Mouse Wheel Zoom** - Opt-in wheel zoom via a per-diagram toggle (off by default, so the page still scrolls normally)
-- **Drag to Pan** - Click and drag to move around your diagrams
-- **Touch Gestures** - Pinch to zoom and drag to pan on mobile devices
-- **Control Buttons** - Quick access to zoom in, zoom out, and reset buttons
-- **Scale Indicator** - Real-time display of current zoom level
-- **Fullscreen Mode** - Open diagrams in a modal for better viewing
-- **Resizable Containers** - Drag the edges or corners of any diagram to resize its container
+### 1. Viewport Lazy Rendering
+- **Instant Note Opening**: Off-screen diagrams are deferred and replaced with lightweight placeholders, eliminating UI freeze when opening notes with dozens of diagrams.
+- **Dual Trigger Modes**:
+  - **Auto**: Automatically renders diagrams as you scroll near them.
+  - **Manual**: Click placeholders or buttons on demand.
+- **Configurable Viewport Margin**: Fine-tune pre-rendering distance (e.g. `200px`) so diagrams are ready right before scrolling into view.
+- **Diagram Type Badges**: Displays diagram syntax (`flowchart`, `sequenceDiagram`, `block`, `sankey`, etc.) on unrendered placeholders.
+- **Auto Re-render on Theme Change**: Automatically redraws visible diagrams when switching between light and dark themes.
+- **Dedicated Master Toggle**: Turn lazy rendering on or off anytime directly from the settings panel.
+
+### 2. Smooth Zoom & Pan
+- **Mouse Wheel Zoom**: Smooth cursor-centered scaling from 10% to 500%.
+- **Drag to Pan**: Grab and drag diagrams freely within their containers.
+- **Mobile Touch Gestures**: Two-finger pinch to zoom and one-finger drag to pan on smartphones and tablets.
+- **Wheel Lock Toggle**: Keep the note page scrolling naturally; unlock wheel zoom on specific diagrams when needed.
+- **Fit to Width & 1:1 Reset**: One-click actions to adapt wide diagrams to your note's column width or reset zoom.
+
+### 3. Fullscreen Modal Viewer
+- **True Color Preservation**: Preserves exact native and Mermaid Genie palettes without destructive dark-mode color inversion or contrast wash-out.
+- **Interactive Inspection**: Inspect complex diagrams with high-resolution vector scaling, pan, and escape-key dismissal.
+
+### 4. High-DPI PNG Export
+- Export diagrams directly to your vault's attachment folder or download locally.
+- Inlines all computed styles and theme variables for pixel-perfect standalone images.
+
+---
 
 ## Installation
 
-### Obsidian Plugin Market (Coming Soon)
-
-Once approved, install directly from Obsidian's community plugins browser.
-
 ### Manual Installation
 
-1. Download the latest release from [GitHub Releases](https://github.com/xiaozhuang0433/mermaid-zoom/releases)
-2. Extract to your vault's plugins directory:
+1. Copy the following three files from the [`dist/`](dist/) folder:
+   - `main.js`
+   - `manifest.json`
+   - `styles.css`
+2. In your Obsidian vault, navigate to:
+   ```text
+   <vault>/.obsidian/plugins/
    ```
-   your-vault/.obsidian/plugins/mermaid-zoom
+3. Create a folder named `mermaid-zoom`:
+   ```text
+   <vault>/.obsidian/plugins/mermaid-zoom/
    ```
-3. Enable the plugin in Obsidian:
-   - Settings → Community Plugins
-   - Find "Mermaid Zoom" and enable it
+4. Place the three files inside that folder.
+5. In Obsidian, go to **Settings → Community plugins**, click **Reload plugins**, and enable **Mermaid Zoom**.
 
-## Usage
+---
 
-### Mouse Controls
+## Settings
 
-| Action | Description |
-|--------|-------------|
-| **Zoom** | Enable the *Wheel zoom* toggle on a diagram, then scroll the wheel over it |
-| **Pan** | Click and drag to move the diagram |
-| **Resize** | Drag an edge or corner of the diagram container |
-| **Fullscreen** | Click the fullscreen button to open in modal view |
+### Zoom & Appearance
+- **Zoom Sensitivity**: Multiplier on wheel and pinch gestures (0.2x to 3.0x, default `1x`).
+- **Show Inline Zoom Buttons**: Show zoom in, zoom out, fit width, reset, and gesture lock controls directly on each diagram.
+- **Show Container Border**: Display a subtle dashed border around each diagram area.
+- **Default Alignment**: Align diagrams to `Left`, `Center`, or `Right`.
+- **Preserve Normal Rendering Colors**: Render fullscreen diagrams with their exact colors and theme variables.
+- **PNG Export Destination**: Save exported PNGs to your vault attachments folder or prompt system download.
 
-### Touch Controls (Mobile)
+### Viewport Lazy Rendering
+- **Enable Lazy Rendering**: Master toggle. When turned off, restores native synchronous diagram rendering.
+- **Render Trigger Mode**: Choose `Auto (on scroll near viewport)` or `Manual (click placeholder to render)`.
+- **Pre-render Viewport Margin**: Set distance in pixels from the viewport before rendering begins (e.g. `200px`).
+- **Show Diagram Type Badge**: Display diagram keyword badge on placeholders.
+- **Re-render on Theme Switch**: Automatically re-render visible diagrams when toggling dark and light modes.
 
-| Action | Description |
-|--------|-------------|
-| **Zoom** | Pinch with two fingers |
-| **Pan** | Drag with one finger |
+---
 
-### Control Buttons
+## Commands
 
-Located in the bottom-right corner of each diagram:
+Access these commands from Obsidian's Command Palette (`Ctrl+P` / `Cmd+P`):
 
-- **Wheel zoom** toggle - Enable wheel-to-zoom for this diagram (off by default)
-- **`+`** - Zoom in
-- **`-`** - Zoom out
-- **`↔`** - Fit to width (scale the diagram so its full width fits the note column)
-- **`⟲`** - Reset to fit
-- **`⛶`** - Toggle fullscreen
+| Command | Action |
+| :--- | :--- |
+| **Render all diagrams in active note** | Forces immediate rendering of all unrendered Mermaid placeholders |
+| **Render diagrams in current viewport** | Renders all placeholders currently visible within your screen |
+
+---
 
 ## Development
 
@@ -69,32 +96,15 @@ Located in the bottom-right corner of each diagram:
 # Install dependencies
 npm install
 
-# Development mode (watch for changes)
-npm run dev
+# Run unit tests (6 tests)
+npm test
 
-# Production build
+# Build production bundle
 npm run build
 ```
 
-## Settings
-
-The plugin provides the following settings in Obsidian's plugin settings:
-
-- **Default zoom level** — Initial zoom percentage when a diagram is rendered (50–300%, default 100%). Set it higher (e.g., 150%) if you prefer diagrams to appear larger without zooming in manually each time. Note: changes only apply to newly rendered diagrams; reload the note to see the effect.
-
-## How It Works
-
-The plugin automatically detects all Mermaid diagrams rendered in Obsidian and wraps each one in a zoomable, resizable container. Each container can be resized by dragging its edges or corners. Zoom range is from 10% to 500%.
-
-Wheel zoom is off by default in the inline view (so the page scrolls normally); enable it per diagram with the **Wheel zoom** toggle. In the fullscreen modal, wheel zoom is always active.
-
-Original SVG dimensions are cached to ensure consistent scaling behavior when resetting or resizing.
+---
 
 ## License
 
-[MIT](LICENSE) © [Wang Xiao Zhuang](https://github.com/xiaozhuang0433)
-
-## Support
-
-- Issues: [GitHub Issues](https://github.com/xiaozhuang0433/mermaid-zoom/issues)
-- Discussions: [GitHub Discussions](https://github.com/xiaozhuang0433/mermaid-zoom/discussions)
+MIT License — Copyright (c) 2026 [Vibish](https://github.com/VibishnathanG).

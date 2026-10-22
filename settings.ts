@@ -11,6 +11,12 @@ export interface MermaidZoomSettings {
 	alignment: 'left' | 'center' | 'right';
 	exportDestination: ExportDestination; // 'vault' | 'download'
 	preserveColors: boolean; // Keep native/Genie diagram colors in fullscreen (default: true)
+	// Lazy rendering configuration
+	enableLazyLoading: boolean; // Master toggle for lazy rendering
+	lazyTrigger: 'auto' | 'click'; // 'auto' on scroll into viewport, or 'click' on placeholder
+	lazyRootMargin: string; // Viewport distance margin (e.g. '200px')
+	lazyShowType: boolean; // Show diagram keyword on placeholder
+	lazyRerenderOnThemeChange: boolean; // Re-render visible diagrams on theme change
 }
 
 export const DEFAULT_SETTINGS: MermaidZoomSettings = {
@@ -20,6 +26,11 @@ export const DEFAULT_SETTINGS: MermaidZoomSettings = {
 	alignment: 'center',
 	exportDestination: 'vault',
 	preserveColors: true,
+	enableLazyLoading: true,
+	lazyTrigger: 'auto',
+	lazyRootMargin: '200px',
+	lazyShowType: true,
+	lazyRerenderOnThemeChange: true,
 };
 
 export class MermaidZoomSettingTab extends PluginSettingTab {
@@ -103,6 +114,55 @@ export class MermaidZoomSettingTab extends PluginSettingTab {
 					defaultValue: 'vault',
 				},
 			},
+			{
+				name: 'Enable lazy rendering',
+				desc: 'Defer rendering of off-screen Mermaid diagrams until they approach or enter the viewport. Opens notes with many diagrams smoothly without freezing.',
+				control: {
+					type: 'toggle',
+					key: 'enableLazyLoading',
+					defaultValue: true,
+				},
+			},
+			{
+				name: 'Render trigger',
+				desc: 'Auto: render when scrolling near viewport. Manual: click placeholder to render.',
+				control: {
+					type: 'dropdown',
+					key: 'lazyTrigger',
+					options: {
+						auto: 'Auto (near viewport)',
+						click: 'Manual (click to render)',
+					},
+					defaultValue: 'auto',
+				},
+			},
+			{
+				name: 'Pre-render margin',
+				desc: 'Distance in pixels from the viewport to start rendering diagrams. E.g. 200px.',
+				control: {
+					type: 'text',
+					key: 'lazyRootMargin',
+					defaultValue: '200px',
+				},
+			},
+			{
+				name: 'Show diagram type on placeholder',
+				desc: 'Display diagram keyword badge (e.g. flowchart, sequenceDiagram) on unrendered placeholders.',
+				control: {
+					type: 'toggle',
+					key: 'lazyShowType',
+					defaultValue: true,
+				},
+			},
+			{
+				name: 'Re-render on theme change',
+				desc: 'Automatically re-render visible diagrams when switching between light and dark themes.',
+				control: {
+					type: 'toggle',
+					key: 'lazyRerenderOnThemeChange',
+					defaultValue: true,
+				},
+			},
 		];
 	}
 
@@ -116,11 +176,18 @@ export class MermaidZoomSettingTab extends PluginSettingTab {
 			// re-sync them so open notes update immediately.
 			this.plugin.decorateAllMermaidBlocks();
 		}
+		if (key.startsWith('lazy') || key === 'enableLazyLoading') {
+			this.plugin.lazyManager.updateSettings();
+		}
 	}
 
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
+
+		new Setting(containerEl)
+			.setName('Zoom & Appearance')
+			.setHeading();
 
 		new Setting(containerEl)
 			.setName(t('setting.zoomSensitivity.name'))
@@ -190,6 +257,73 @@ export class MermaidZoomSettingTab extends PluginSettingTab {
 					this.plugin.settings.exportDestination = value as ExportDestination;
 					await this.plugin.saveSettings();
 				}));
+
+		// ==========================================
+		// Lazy Rendering Section
+		// ==========================================
+		new Setting(containerEl)
+			.setName('Viewport Lazy Rendering')
+			.setHeading();
+
+		new Setting(containerEl)
+			.setName('Enable lazy rendering')
+			.setDesc('Defer rendering of off-screen Mermaid diagrams until they enter or approach the viewport. Prevents UI lag when opening notes containing many diagrams.')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.enableLazyLoading)
+				.onChange(async (value) => {
+					this.plugin.settings.enableLazyLoading = value;
+					await this.plugin.saveSettings();
+					this.plugin.lazyManager.updateSettings();
+					this.display(); // Reveal or hide child lazy options immediately
+				}));
+
+		if (this.plugin.settings.enableLazyLoading) {
+			new Setting(containerEl)
+				.setName('Render trigger mode')
+				.setDesc('Auto: render automatically when diagram scrolls near viewport. Manual: click placeholder to render.')
+				.addDropdown(dropdown => dropdown
+					.addOption('auto', 'Auto (on scroll near viewport)')
+					.addOption('click', 'Manual (click placeholder to render)')
+					.setValue(this.plugin.settings.lazyTrigger)
+					.onChange(async (value) => {
+						this.plugin.settings.lazyTrigger = value as 'auto' | 'click';
+						await this.plugin.saveSettings();
+						this.plugin.lazyManager.updateSettings();
+					}));
+
+			new Setting(containerEl)
+				.setName('Pre-render viewport margin')
+				.setDesc('Distance in pixels from viewport before diagram starts rendering. Higher margin renders earlier before scrolling into view (e.g. 200px).')
+				.addText(text => text
+					.setPlaceholder('200px')
+					.setValue(this.plugin.settings.lazyRootMargin)
+					.onChange(async (value) => {
+						this.plugin.settings.lazyRootMargin = value.trim() || '200px';
+						await this.plugin.saveSettings();
+						this.plugin.lazyManager.updateSettings();
+					}));
+
+			new Setting(containerEl)
+				.setName('Show diagram type badge')
+				.setDesc('Display diagram type label on placeholder (e.g. flowchart, sequenceDiagram, block).')
+				.addToggle(toggle => toggle
+					.setValue(this.plugin.settings.lazyShowType)
+					.onChange(async (value) => {
+						this.plugin.settings.lazyShowType = value;
+						await this.plugin.saveSettings();
+					}));
+
+			new Setting(containerEl)
+				.setName('Re-render on theme switch')
+				.setDesc('Automatically re-render visible diagrams when switching between light and dark themes.')
+				.addToggle(toggle => toggle
+					.setValue(this.plugin.settings.lazyRerenderOnThemeChange)
+					.onChange(async (value) => {
+						this.plugin.settings.lazyRerenderOnThemeChange = value;
+						await this.plugin.saveSettings();
+						this.plugin.lazyManager.updateSettings();
+					}));
+		}
 
 		containerEl.createEl('p', {
 			text: t('settings.note'),
