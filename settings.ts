@@ -1,4 +1,4 @@
-import type { App, SettingDefinitionItem } from 'obsidian';
+import type { App } from 'obsidian';
 import { PluginSettingTab, Setting } from 'obsidian';
 import type MermaidZoomPlugin from './main';
 import { t } from './i18n';
@@ -6,13 +6,15 @@ import type { ExportDestination } from './export';
 
 export interface MermaidZoomSettings {
 	zoomSensitivity: number; // multiplier on wheel/pinch zoom strength, 1 = default
+	defaultScale: number; // default initial scale for all diagrams (e.g. 1.0 = normal, 0.8 = compact, 1.3 = enlarged)
+	autoFitWidth: boolean; // whether diagrams automatically scale to match note width on load
 	showInlineZoomButtons: boolean;
 	showContainerBorder: boolean;
 	alignment: 'left' | 'center' | 'right';
 	exportDestination: ExportDestination; // 'vault' | 'download'
 	preserveColors: boolean; // Keep native/Genie diagram colors in fullscreen (default: true)
 	// Lazy rendering configuration
-	enableLazyLoading: boolean; // Master toggle for lazy rendering
+	enableLazyLoading: boolean; // Master toggle for lazy rendering (set false for immediate normal render)
 	lazyTrigger: 'auto' | 'click'; // 'auto' on scroll into viewport, or 'click' on placeholder
 	lazyRootMargin: string; // Viewport distance margin (e.g. '200px')
 	lazyShowType: boolean; // Show diagram keyword on placeholder
@@ -21,6 +23,8 @@ export interface MermaidZoomSettings {
 
 export const DEFAULT_SETTINGS: MermaidZoomSettings = {
 	zoomSensitivity: 1,
+	defaultScale: 1,
+	autoFitWidth: false,
 	showInlineZoomButtons: true,
 	showContainerBorder: false,
 	alignment: 'center',
@@ -39,146 +43,6 @@ export class MermaidZoomSettingTab extends PluginSettingTab {
 	constructor(app: App, plugin: MermaidZoomPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
-	}
-
-	// Declarative settings API (Obsidian 1.13.0+). When this returns a
-	// non-empty array, Obsidian renders the tab from these definitions and
-	// indexes them for settings search; display() is used as the fallback for
-	// older Obsidian versions.
-	getSettingDefinitions(): SettingDefinitionItem[] {
-		return [
-			{
-				name: t('setting.zoomSensitivity.name'),
-				desc: t('setting.zoomSensitivity.desc'),
-				control: {
-					type: 'slider',
-					key: 'zoomSensitivity',
-					min: 0.2,
-					max: 3,
-					step: 0.1,
-					defaultValue: 1,
-					displayFormat: (value) => `${value}x`,
-				},
-			},
-			{
-				name: t('setting.inlineZoomButtons.name'),
-				desc: t('setting.inlineZoomButtons.desc'),
-				control: {
-					type: 'toggle',
-					key: 'showInlineZoomButtons',
-					defaultValue: true,
-				},
-			},
-			{
-				name: t('setting.containerBorder.name'),
-				desc: t('setting.containerBorder.desc'),
-				control: {
-					type: 'toggle',
-					key: 'showContainerBorder',
-					defaultValue: false,
-				},
-			},
-			{
-				name: t('setting.alignment.name'),
-				desc: t('setting.alignment.desc'),
-				control: {
-					type: 'dropdown',
-					key: 'alignment',
-					options: {
-						left: t('setting.alignment.option.left'),
-						center: t('setting.alignment.option.center'),
-						right: t('setting.alignment.option.right'),
-					},
-					defaultValue: 'center',
-				},
-			},
-			{
-				name: t('setting.preserveColors.name'),
-				desc: t('setting.preserveColors.desc'),
-				control: {
-					type: 'toggle',
-					key: 'preserveColors',
-					defaultValue: true,
-				},
-			},
-			{
-				name: t('setting.exportDestination.name'),
-				desc: t('setting.exportDestination.desc'),
-				control: {
-					type: 'dropdown',
-					key: 'exportDestination',
-					options: {
-						vault: t('setting.exportDestination.option.vault'),
-						download: t('setting.exportDestination.option.download'),
-					},
-					defaultValue: 'vault',
-				},
-			},
-			{
-				name: 'Enable lazy rendering',
-				desc: 'Defer rendering of off-screen Mermaid diagrams until they approach or enter the viewport. Opens notes with many diagrams smoothly without freezing.',
-				control: {
-					type: 'toggle',
-					key: 'enableLazyLoading',
-					defaultValue: true,
-				},
-			},
-			{
-				name: 'Render trigger',
-				desc: 'Auto: render when scrolling near viewport. Manual: click placeholder to render.',
-				control: {
-					type: 'dropdown',
-					key: 'lazyTrigger',
-					options: {
-						auto: 'Auto (near viewport)',
-						click: 'Manual (click to render)',
-					},
-					defaultValue: 'auto',
-				},
-			},
-			{
-				name: 'Pre-render margin',
-				desc: 'Distance in pixels from the viewport to start rendering diagrams. E.g. 200px.',
-				control: {
-					type: 'text',
-					key: 'lazyRootMargin',
-					defaultValue: '200px',
-				},
-			},
-			{
-				name: 'Show diagram type on placeholder',
-				desc: 'Display diagram keyword badge (e.g. flowchart, sequenceDiagram) on unrendered placeholders.',
-				control: {
-					type: 'toggle',
-					key: 'lazyShowType',
-					defaultValue: true,
-				},
-			},
-			{
-				name: 'Re-render on theme change',
-				desc: 'Automatically re-render visible diagrams when switching between light and dark themes.',
-				control: {
-					type: 'toggle',
-					key: 'lazyRerenderOnThemeChange',
-					defaultValue: true,
-				},
-			},
-		];
-	}
-
-	// Persist declarative-control writes through the plugin's own saver so
-	// data.json stays in sync. (The base reads from this.plugin.settings.)
-	async setControlValue(key: string, value: unknown): Promise<void> {
-		(this.plugin.settings as unknown as Record<string, unknown>)[key] = value;
-		await this.plugin.saveSettings();
-		if (key === 'alignment' || key === 'showContainerBorder' || key === 'showInlineZoomButtons') {
-			// Appearance classes are baked onto each block at decoration time;
-			// re-sync them so open notes update immediately.
-			this.plugin.decorateAllMermaidBlocks();
-		}
-		if (key.startsWith('lazy') || key === 'enableLazyLoading') {
-			this.plugin.lazyManager.updateSettings();
-		}
 	}
 
 	display(): void {
@@ -215,9 +79,34 @@ export class MermaidZoomSettingTab extends PluginSettingTab {
 			.addSlider(slider => slider
 				.setLimits(0.2, 3, 0.1)
 				.setValue(this.plugin.settings.zoomSensitivity)
+				.setDynamicTooltip()
 				.onChange(async (value) => {
 					this.plugin.settings.zoomSensitivity = value;
 					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Default zoom level')
+			.setDesc('Initial scale applied to all Mermaid diagrams upon loading (e.g. 1.0 = 100% normal, 0.8 = compact, 1.2 = enlarged).')
+			.addSlider(slider => slider
+				.setLimits(0.5, 2.5, 0.1)
+				.setValue(this.plugin.settings.defaultScale || 1)
+				.setDynamicTooltip()
+				.onChange(async (value) => {
+					this.plugin.settings.defaultScale = value;
+					await this.plugin.saveSettings();
+					this.plugin.decorateAllMermaidBlocks();
+				}));
+
+		new Setting(containerEl)
+			.setName('Auto-fit diagrams to note width')
+			.setDesc('Automatically scale wide diagrams to match note column width on load.')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.autoFitWidth || false)
+				.onChange(async (value) => {
+					this.plugin.settings.autoFitWidth = value;
+					await this.plugin.saveSettings();
+					this.plugin.decorateAllMermaidBlocks();
 				}));
 
 		new Setting(containerEl)
@@ -287,7 +176,7 @@ export class MermaidZoomSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Enable lazy rendering')
-			.setDesc('Defer rendering of off-screen Mermaid diagrams until they enter or approach the viewport. Prevents UI lag when opening notes containing many diagrams.')
+			.setDesc('Defer rendering of off-screen Mermaid diagrams until they enter or approach the viewport. Prevents UI lag when opening notes containing many diagrams. Turn off to render all diagrams immediately.')
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.enableLazyLoading)
 				.onChange(async (value) => {
@@ -347,7 +236,7 @@ export class MermaidZoomSettingTab extends PluginSettingTab {
 
 		containerEl.createEl('p', {
 			text: t('settings.note'),
-			cls: 'setting-item-description'
+			cls: 'setting-item-description',
 		});
 	}
 }

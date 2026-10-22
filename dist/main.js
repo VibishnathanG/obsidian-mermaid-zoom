@@ -326,6 +326,8 @@ function t(key) {
 // settings.ts
 var DEFAULT_SETTINGS = {
   zoomSensitivity: 1,
+  defaultScale: 1,
+  autoFitWidth: false,
   showInlineZoomButtons: true,
   showContainerBorder: false,
   alignment: "center",
@@ -341,142 +343,6 @@ var MermaidZoomSettingTab = class extends import_obsidian2.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
     this.plugin = plugin;
-  }
-  // Declarative settings API (Obsidian 1.13.0+). When this returns a
-  // non-empty array, Obsidian renders the tab from these definitions and
-  // indexes them for settings search; display() is used as the fallback for
-  // older Obsidian versions.
-  getSettingDefinitions() {
-    return [
-      {
-        name: t("setting.zoomSensitivity.name"),
-        desc: t("setting.zoomSensitivity.desc"),
-        control: {
-          type: "slider",
-          key: "zoomSensitivity",
-          min: 0.2,
-          max: 3,
-          step: 0.1,
-          defaultValue: 1,
-          displayFormat: (value) => `${value}x`
-        }
-      },
-      {
-        name: t("setting.inlineZoomButtons.name"),
-        desc: t("setting.inlineZoomButtons.desc"),
-        control: {
-          type: "toggle",
-          key: "showInlineZoomButtons",
-          defaultValue: true
-        }
-      },
-      {
-        name: t("setting.containerBorder.name"),
-        desc: t("setting.containerBorder.desc"),
-        control: {
-          type: "toggle",
-          key: "showContainerBorder",
-          defaultValue: false
-        }
-      },
-      {
-        name: t("setting.alignment.name"),
-        desc: t("setting.alignment.desc"),
-        control: {
-          type: "dropdown",
-          key: "alignment",
-          options: {
-            left: t("setting.alignment.option.left"),
-            center: t("setting.alignment.option.center"),
-            right: t("setting.alignment.option.right")
-          },
-          defaultValue: "center"
-        }
-      },
-      {
-        name: t("setting.preserveColors.name"),
-        desc: t("setting.preserveColors.desc"),
-        control: {
-          type: "toggle",
-          key: "preserveColors",
-          defaultValue: true
-        }
-      },
-      {
-        name: t("setting.exportDestination.name"),
-        desc: t("setting.exportDestination.desc"),
-        control: {
-          type: "dropdown",
-          key: "exportDestination",
-          options: {
-            vault: t("setting.exportDestination.option.vault"),
-            download: t("setting.exportDestination.option.download")
-          },
-          defaultValue: "vault"
-        }
-      },
-      {
-        name: "Enable lazy rendering",
-        desc: "Defer rendering of off-screen Mermaid diagrams until they approach or enter the viewport. Opens notes with many diagrams smoothly without freezing.",
-        control: {
-          type: "toggle",
-          key: "enableLazyLoading",
-          defaultValue: true
-        }
-      },
-      {
-        name: "Render trigger",
-        desc: "Auto: render when scrolling near viewport. Manual: click placeholder to render.",
-        control: {
-          type: "dropdown",
-          key: "lazyTrigger",
-          options: {
-            auto: "Auto (near viewport)",
-            click: "Manual (click to render)"
-          },
-          defaultValue: "auto"
-        }
-      },
-      {
-        name: "Pre-render margin",
-        desc: "Distance in pixels from the viewport to start rendering diagrams. E.g. 200px.",
-        control: {
-          type: "text",
-          key: "lazyRootMargin",
-          defaultValue: "200px"
-        }
-      },
-      {
-        name: "Show diagram type on placeholder",
-        desc: "Display diagram keyword badge (e.g. flowchart, sequenceDiagram) on unrendered placeholders.",
-        control: {
-          type: "toggle",
-          key: "lazyShowType",
-          defaultValue: true
-        }
-      },
-      {
-        name: "Re-render on theme change",
-        desc: "Automatically re-render visible diagrams when switching between light and dark themes.",
-        control: {
-          type: "toggle",
-          key: "lazyRerenderOnThemeChange",
-          defaultValue: true
-        }
-      }
-    ];
-  }
-  // Persist declarative-control writes through the plugin's own saver so
-  // data.json stays in sync. (The base reads from this.plugin.settings.)
-  async setControlValue(key, value) {
-    this.plugin.settings[key] = value;
-    await this.plugin.saveSettings();
-    if (key === "alignment" || key === "showContainerBorder" || key === "showInlineZoomButtons") {
-      this.plugin.decorateAllMermaidBlocks();
-    }
-    if (key.startsWith("lazy") || key === "enableLazyLoading") {
-      this.plugin.lazyManager.updateSettings();
-    }
   }
   display() {
     const { containerEl } = this;
@@ -499,9 +365,19 @@ var MermaidZoomSettingTab = class extends import_obsidian2.PluginSettingTab {
     const repoLink = info.createEl("a", { text: "GitHub Repository & Documentation", href: "https://github.com/VibishnathanG/obsidian-mermaid-zoom" });
     repoLink.style.color = "var(--text-accent)";
     new import_obsidian2.Setting(containerEl).setName("Zoom & Appearance").setHeading();
-    new import_obsidian2.Setting(containerEl).setName(t("setting.zoomSensitivity.name")).setDesc(t("setting.zoomSensitivity.desc")).addSlider((slider) => slider.setLimits(0.2, 3, 0.1).setValue(this.plugin.settings.zoomSensitivity).onChange(async (value) => {
+    new import_obsidian2.Setting(containerEl).setName(t("setting.zoomSensitivity.name")).setDesc(t("setting.zoomSensitivity.desc")).addSlider((slider) => slider.setLimits(0.2, 3, 0.1).setValue(this.plugin.settings.zoomSensitivity).setDynamicTooltip().onChange(async (value) => {
       this.plugin.settings.zoomSensitivity = value;
       await this.plugin.saveSettings();
+    }));
+    new import_obsidian2.Setting(containerEl).setName("Default zoom level").setDesc("Initial scale applied to all Mermaid diagrams upon loading (e.g. 1.0 = 100% normal, 0.8 = compact, 1.2 = enlarged).").addSlider((slider) => slider.setLimits(0.5, 2.5, 0.1).setValue(this.plugin.settings.defaultScale || 1).setDynamicTooltip().onChange(async (value) => {
+      this.plugin.settings.defaultScale = value;
+      await this.plugin.saveSettings();
+      this.plugin.decorateAllMermaidBlocks();
+    }));
+    new import_obsidian2.Setting(containerEl).setName("Auto-fit diagrams to note width").setDesc("Automatically scale wide diagrams to match note column width on load.").addToggle((toggle) => toggle.setValue(this.plugin.settings.autoFitWidth || false).onChange(async (value) => {
+      this.plugin.settings.autoFitWidth = value;
+      await this.plugin.saveSettings();
+      this.plugin.decorateAllMermaidBlocks();
     }));
     new import_obsidian2.Setting(containerEl).setName(t("setting.inlineZoomButtons.name")).setDesc(t("setting.inlineZoomButtons.desc")).addToggle((toggle) => toggle.setValue(this.plugin.settings.showInlineZoomButtons).onChange(async (value) => {
       this.plugin.settings.showInlineZoomButtons = value;
@@ -527,7 +403,7 @@ var MermaidZoomSettingTab = class extends import_obsidian2.PluginSettingTab {
       await this.plugin.saveSettings();
     }));
     new import_obsidian2.Setting(containerEl).setName("Viewport Lazy Rendering").setHeading();
-    new import_obsidian2.Setting(containerEl).setName("Enable lazy rendering").setDesc("Defer rendering of off-screen Mermaid diagrams until they enter or approach the viewport. Prevents UI lag when opening notes containing many diagrams.").addToggle((toggle) => toggle.setValue(this.plugin.settings.enableLazyLoading).onChange(async (value) => {
+    new import_obsidian2.Setting(containerEl).setName("Enable lazy rendering").setDesc("Defer rendering of off-screen Mermaid diagrams until they enter or approach the viewport. Prevents UI lag when opening notes containing many diagrams. Turn off to render all diagrams immediately.").addToggle((toggle) => toggle.setValue(this.plugin.settings.enableLazyLoading).onChange(async (value) => {
       this.plugin.settings.enableLazyLoading = value;
       await this.plugin.saveSettings();
       this.plugin.lazyManager.updateSettings();
@@ -1117,6 +993,11 @@ function ensureControlCluster(block, opts) {
 function syncInlineZoom(block, opts) {
   ensureControlCluster(block, opts);
   block.toggleClass("mermaid-zoom-inline-controls-off", !opts.showZoomButtons);
+  if (opts.autoFitWidth && !block.dataset.mzScale) {
+    fitBlockToWidth(block);
+  } else if (opts.defaultScale && opts.defaultScale !== 1 && !block.dataset.mzScale) {
+    setBlockScale(block, opts.defaultScale);
+  }
   const scale = getBlockScale(block);
   if (scale !== 1) {
     const svg = block.querySelector("svg");
@@ -1673,6 +1554,18 @@ var MermaidZoomPlugin = class extends import_obsidian6.Plugin {
         return true;
       }
     });
+    this.addCommand({
+      id: "open-settings",
+      name: "Open settings",
+      callback: () => {
+        var _a, _b;
+        const setting = this.app.setting;
+        if (setting) {
+          (_a = setting.open) == null ? void 0 : _a.call(setting);
+          (_b = setting.openTabById) == null ? void 0 : _b.call(setting, this.manifest.id);
+        }
+      }
+    });
   }
   setupMutationObserver() {
     this.mutationObserver = new MutationObserver((mutations) => {
@@ -1759,7 +1652,9 @@ var MermaidZoomPlugin = class extends import_obsidian6.Plugin {
         }
       },
       getSensitivity: () => this.settings.zoomSensitivity,
-      showZoomButtons: this.settings.showInlineZoomButtons
+      showZoomButtons: this.settings.showInlineZoomButtons,
+      defaultScale: this.settings.defaultScale,
+      autoFitWidth: this.settings.autoFitWidth
     });
   }
   openFullscreenModal(sourceSvg) {

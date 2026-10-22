@@ -76,6 +76,18 @@ export default class MermaidZoomPlugin extends Plugin {
 				return true;
 			},
 		});
+
+		this.addCommand({
+			id: 'open-settings',
+			name: 'Open settings',
+			callback: () => {
+				const setting = (this.app as any).setting;
+				if (setting) {
+					setting.open?.();
+					setting.openTabById?.(this.manifest.id);
+				}
+			},
+		});
 	}
 
 	private pendingMutationNodes: Set<HTMLElement> = new Set();
@@ -178,6 +190,8 @@ export default class MermaidZoomPlugin extends Plugin {
 			},
 			getSensitivity: () => this.settings.zoomSensitivity,
 			showZoomButtons: this.settings.showInlineZoomButtons,
+			defaultScale: this.settings.defaultScale,
+			autoFitWidth: this.settings.autoFitWidth,
 		});
 	}
 
