@@ -10,6 +10,7 @@ export interface MermaidZoomSettings {
 	showContainerBorder: boolean;
 	alignment: 'left' | 'center' | 'right';
 	exportDestination: ExportDestination; // 'vault' | 'download'
+	preserveColors: boolean; // Keep native/Genie diagram colors in fullscreen (default: true)
 }
 
 export const DEFAULT_SETTINGS: MermaidZoomSettings = {
@@ -18,6 +19,7 @@ export const DEFAULT_SETTINGS: MermaidZoomSettings = {
 	showContainerBorder: false,
 	alignment: 'center',
 	exportDestination: 'vault',
+	preserveColors: true,
 };
 
 export class MermaidZoomSettingTab extends PluginSettingTab {
@@ -77,6 +79,15 @@ export class MermaidZoomSettingTab extends PluginSettingTab {
 						right: t('setting.alignment.option.right'),
 					},
 					defaultValue: 'center',
+				},
+			},
+			{
+				name: t('setting.preserveColors.name'),
+				desc: t('setting.preserveColors.desc'),
+				control: {
+					type: 'toggle',
+					key: 'preserveColors',
+					defaultValue: true,
 				},
 			},
 			{
@@ -156,6 +167,16 @@ export class MermaidZoomSettingTab extends PluginSettingTab {
 					this.plugin.settings.alignment = value as 'left' | 'center' | 'right';
 					await this.plugin.saveSettings();
 					this.plugin.decorateAllMermaidBlocks();
+				}));
+
+		new Setting(containerEl)
+			.setName(t('setting.preserveColors.name'))
+			.setDesc(t('setting.preserveColors.desc'))
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.preserveColors)
+				.onChange(async (value) => {
+					this.plugin.settings.preserveColors = value;
+					await this.plugin.saveSettings();
 				}));
 
 		new Setting(containerEl)

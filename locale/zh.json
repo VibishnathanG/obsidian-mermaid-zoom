@@ -11,6 +11,8 @@
   "setting.alignment.option.center": "居中",
   "setting.alignment.option.right": "右对齐",
   "settings.note": "外观设置立即作用于已打开的笔记；内联缩放灵敏度立即生效，全屏视图在下次打开时生效。",
+  "setting.preserveColors.name": "全屏保持正常渲染颜色",
+  "setting.preserveColors.desc": "在全屏模式下保留与笔记中完全相同的原始与主题颜色（如 Mermaid Genie），不强制进行暗色反相或颜色失真。",
   "setting.exportDestination.name": "PNG 导出位置",
   "setting.exportDestination.desc": "导出的图表 PNG 图片保存到哪里。",
   "setting.exportDestination.option.vault": "仓库（附件目录）",

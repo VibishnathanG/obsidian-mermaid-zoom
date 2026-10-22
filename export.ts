@@ -3,6 +3,43 @@ import { t } from './i18n';
 
 export type ExportDestination = 'vault' | 'download';
 
+const STYLE_PROPERTIES = [
+	'color', 'background-color', 'fill', 'fill-opacity', 'fill-rule', 'stroke', 'stroke-width',
+	'stroke-opacity', 'stroke-dasharray', 'stroke-dashoffset', 'stroke-linecap', 'stroke-linejoin',
+	'opacity', 'font-family', 'font-size', 'font-weight', 'font-style', 'font-variant',
+	'letter-spacing', 'line-height', 'text-anchor', 'dominant-baseline', 'text-decoration',
+	'white-space', 'word-break', 'overflow-wrap', 'text-align', 'vertical-align',
+	'display', 'visibility', 'padding', 'margin', 'border', 'border-radius',
+	'box-sizing', 'width', 'height', 'max-width', 'min-width',
+	'marker-start', 'marker-mid', 'marker-end', 'clip-path', 'mask', 'vector-effect',
+	'transform', 'transform-origin', 'transform-box', 'rx', 'ry',
+];
+
+function inlineComputedStyles(originalSvg: SVGSVGElement, targetSvg: SVGSVGElement): void {
+	const view = originalSvg.ownerDocument?.defaultView || window;
+	const originals = [originalSvg, ...Array.from(originalSvg.querySelectorAll<SVGElement | HTMLElement>('*'))];
+	const targets = [targetSvg, ...Array.from(targetSvg.querySelectorAll<SVGElement | HTMLElement>('*'))];
+
+	for (let i = 0; i < originals.length; i++) {
+		const orig = originals[i];
+		const tgt = targets[i];
+		if (!orig || !tgt || !tgt.style) continue;
+		const computed = view.getComputedStyle(orig);
+		for (const prop of STYLE_PROPERTIES) {
+			let val = computed.getPropertyValue(prop);
+			if (!val) continue;
+			val = val.replace(/url\(["']?([^"')]+)["']?\)/g, (_match, url: string) => {
+				const frag = url.indexOf('#');
+				if (frag >= 0 && (url.startsWith('#') || url.slice(0, frag) === originalSvg.ownerDocument.URL.split('#')[0])) {
+					return `url(${url.slice(frag)})`;
+				}
+				return `url(${url})`;
+			});
+			tgt.style.setProperty(prop, val);
+		}
+	}
+}
+
 /**
  * Rasterize an SVG element to a PNG Blob at the given scale. The live SVG
  * (which may sit inside a zoomed/panned wrapper) is cloned so the export is
@@ -14,8 +51,10 @@ async function svgToPngBlob(svg: SVGSVGElement, width: number, height: number, s
 	clone.setAttribute('width', String(width));
 	clone.setAttribute('height', String(height));
 	// Strip any inline transform so the export is always the unzoomed diagram.
-	// removeProperty (not a style assignment) satisfies no-static-styles-assignment.
 	clone.style.removeProperty('transform');
+
+	// Inline all computed styles so export captures exact theme & Genie palette colors
+	inlineComputedStyles(svg, clone);
 
 	const svgDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(clone));
 

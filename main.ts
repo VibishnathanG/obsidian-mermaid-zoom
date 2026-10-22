@@ -173,7 +173,10 @@ export default class MermaidZoomPlugin extends Plugin {
 
 		// Create content wrapper for transformations
 		const modalContentWrapper = createDiv();
-		modalContentWrapper.className = 'mermaid-zoom-modal-wrapper';
+		modalContentWrapper.className = 'mermaid-zoom-modal-wrapper mermaid';
+		if (!this.settings.preserveColors) {
+			modalContentWrapper.classList.add('mermaid-zoom-legacy-invert');
+		}
 		modalContentWrapper.style.cssText = `
 			transform-origin: 0 0;
 			transition: transform 0.1s ease-out;
@@ -195,6 +198,33 @@ export default class MermaidZoomPlugin extends Plugin {
 			svgClone.style.removeProperty('height');
 			const naturalMaxWidth = `${viewBoxBase.width}px`;
 			svgClone.style.maxWidth = naturalMaxWidth;
+		}
+
+		// Preserve exact rendering and colors as normal rendering (same as Genie):
+		// Inherit theme and styling classes and CSS custom properties from source
+		const host = sourceSvg.closest<HTMLElement>('.mermaid');
+		if (host) {
+			for (const cls of Array.from(host.classList)) {
+				if (cls !== 'mermaid' && !cls.startsWith('mermaid-zoom-')) {
+					modalContentWrapper.classList.add(cls);
+				}
+			}
+			const hostStyle = window.getComputedStyle(host);
+			for (const prop of ['--mpe-node', '--mpe-border', '--mpe-line', '--mpe-text', '--mpe-label', '--mpe-highlight', '--mpe-duration', '--mpe-cluster-bkg', '--mpe-accent']) {
+				const val = hostStyle.getPropertyValue(prop);
+				if (val) {
+					modalContentWrapper.style.setProperty(prop, val);
+					svgClone.style.setProperty(prop, val);
+				}
+			}
+		}
+
+		const svgStyle = window.getComputedStyle(sourceSvg);
+		for (const prop of ['--mpe-node', '--mpe-border', '--mpe-line', '--mpe-text', '--mpe-label', '--mpe-highlight', '--mpe-duration', '--mpe-cluster-bkg', '--mpe-accent']) {
+			const val = svgStyle.getPropertyValue(prop);
+			if (val) {
+				svgClone.style.setProperty(prop, val);
+			}
 		}
 
 		modalContentWrapper.appendChild(svgClone);

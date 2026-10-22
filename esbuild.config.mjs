@@ -1,6 +1,19 @@
 import esbuild from "esbuild";
 import process from "process";
 import { builtinModules } from "node:module";
+import fs from "node:fs/promises";
+import path from "node:path";
+
+async function copyToDist() {
+	await fs.mkdir("dist", { recursive: true });
+	for (const file of ["main.js", "manifest.json", "styles.css"]) {
+		try {
+			await fs.copyFile(file, path.join("dist", file));
+		} catch (err) {
+			console.warn(`Could not copy ${file} to dist:`, err);
+		}
+	}
+}
 
 const banner =
 `/*
@@ -42,6 +55,7 @@ const context = await esbuild.context({
 
 if (prod) {
 	await context.rebuild();
+	await copyToDist();
 	process.exit(0);
 } else {
 	await context.watch();

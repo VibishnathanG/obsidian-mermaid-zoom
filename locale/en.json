@@ -11,6 +11,8 @@
   "setting.alignment.option.center": "Center",
   "setting.alignment.option.right": "Right",
   "settings.note": "Appearance settings apply to open notes immediately; inline zoom sensitivity applies immediately, and the fullscreen view picks it up the next time it opens.",
+  "setting.preserveColors.name": "Preserve normal rendering colors in fullscreen",
+  "setting.preserveColors.desc": "Render diagrams in fullscreen with their exact native and theme colors (matching Mermaid Genie and editor view) without forced dark-mode inversion or color distortion.",
   "setting.exportDestination.name": "PNG export destination",
   "setting.exportDestination.desc": "Where exported PNG images of diagrams are saved.",
   "setting.exportDestination.option.vault": "Vault (attachments folder)",
