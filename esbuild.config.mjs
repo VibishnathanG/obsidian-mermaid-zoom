@@ -6,7 +6,7 @@ import path from "node:path";
 
 async function copyToDist() {
 	await fs.mkdir("dist", { recursive: true });
-	for (const file of ["main.js", "manifest.json", "styles.css", "data.json"]) {
+	for (const file of ["main.js", "manifest.json", "styles.css", "data.json", "DATA_OPTIONS.md"]) {
 		try {
 			await fs.copyFile(file, path.join("dist", file));
 		} catch (err) {

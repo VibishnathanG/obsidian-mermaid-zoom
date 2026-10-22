@@ -79,6 +79,32 @@ Maintained and enhanced by **Vibish** ([@VibishnathanG](https://github.com/Vibis
 
 ---
 
+## Direct Configuration via data.json
+
+All settings can be configured directly by editing `data.json` inside your plugin folder without opening the Obsidian UI.
+
+For a full breakdown of all keys, allowed values, and ready-to-copy configurations, see the [**data.json Configuration Guide**](DATA_OPTIONS.md).
+
+```json
+{
+  "enableLazyLoading": true,
+  "lazyTrigger": "auto",
+  "lazyRootMargin": "200px",
+  "lazyShowType": true,
+  "lazyRerenderOnThemeChange": true,
+  "zoomSensitivity": 1.0,
+  "defaultScale": 1.0,
+  "autoFitWidth": false,
+  "showInlineZoomButtons": true,
+  "showContainerBorder": false,
+  "alignment": "center",
+  "preserveColors": true,
+  "exportDestination": "vault"
+}
+```
+
+---
+
 ## Commands
 
 Access these commands from Obsidian's Command Palette (`Ctrl+P` / `Cmd+P`):
